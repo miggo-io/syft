@@ -83,6 +83,25 @@ func parseLicensesFromCopyright(reader io.Reader) []string {
 	return results
 }
 
+// parseCommonLicenseReferences returns the licenses a copyright file of any format names by their
+// /usr/share/common-licenses path, the reference Debian policy requires for the licenses Debian ships.
+func parseCommonLicenseReferences(reader io.Reader) []string {
+	findings := strset.New()
+	scanner := internal.NewLineScanner(reader)
+	for scanner.Scan() {
+		if value := findLicenseClause(commonLicensePathPattern, scanner.Text()); value != "" {
+			findings.Add(value)
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		log.WithFields("error", err).Debug("failed to fully read debian copyright file")
+	}
+
+	results := findings.List()
+	sort.Strings(results)
+	return results
+}
+
 func advanceHeadingState(state int, line string, licenseText *strings.Builder) (int, string) {
 	switch state {
 	case expectHeading:

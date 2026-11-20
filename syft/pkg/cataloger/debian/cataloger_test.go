@@ -2,11 +2,14 @@ package debian
 
 import (
 	"context"
+	"sort"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
 
+	"github.com/anchore/syft/syft/artifact"
 	"github.com/anchore/syft/syft/file"
 	"github.com/anchore/syft/syft/pkg"
 	"github.com/anchore/syft/syft/pkg/cataloger/internal/pkgtest"
@@ -352,4 +355,36 @@ func TestCataloger_Globs(t *testing.T) {
 				TestCataloger(t, NewDBCataloger())
 		})
 	}
+}
+
+// a copyright file that is not machine-readable gets the classifier's licenses; when the classifier identifies none,
+// the common-licenses references it names, else the hash of its content
+func TestDpkgCataloger_licensesOfFreeFormCopyright(t *testing.T) {
+	pkgtest.NewCatalogTester().
+		FromDirectory(t, "testdata/copyright-fallback").
+		ExpectsAssertion(func(t *testing.T, pkgs []pkg.Package, _ []artifact.Relationship) {
+			got := map[string][]string{}
+			for _, p := range pkgs {
+				for _, l := range p.Licenses.ToSlice() {
+					value := l.SPDXExpression
+					if value == "" {
+						value = l.Value
+					}
+					if strings.HasPrefix(value, "sha256:") {
+						value = "sha256:<content>"
+					}
+					got[p.Name] = append(got[p.Name], value)
+				}
+				sort.Strings(got[p.Name])
+			}
+			want := map[string][]string{
+				"libfoo1": {"GPL-2.0-only", "LGPL-2.1-only"},
+				"libbar1": {"MIT"},
+				"libbaz1": {"sha256:<content>"},
+			}
+			if d := cmp.Diff(want, got); d != "" {
+				t.Errorf("unexpected licenses (-want +got):\n%s", d)
+			}
+		}).
+		TestCataloger(t, NewDBCataloger())
 }

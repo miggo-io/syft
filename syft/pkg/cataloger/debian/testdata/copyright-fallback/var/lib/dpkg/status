@@ -1,0 +1,29 @@
+Package: libfoo1
+Status: install ok installed
+Priority: optional
+Section: libs
+Installed-Size: 10
+Maintainer: Example Maintainer <maintainer@example.org>
+Architecture: amd64
+Version: 1.0-1
+Description: library whose copyright points at common-licenses
+
+Package: libbar1
+Status: install ok installed
+Priority: optional
+Section: libs
+Installed-Size: 10
+Maintainer: Example Maintainer <maintainer@example.org>
+Architecture: amd64
+Version: 2.0-1
+Description: library whose copyright is the MIT license text
+
+Package: libbaz1
+Status: install ok installed
+Priority: optional
+Section: libs
+Installed-Size: 10
+Maintainer: Example Maintainer <maintainer@example.org>
+Architecture: amd64
+Version: 3.0-1
+Description: library whose copyright names no license

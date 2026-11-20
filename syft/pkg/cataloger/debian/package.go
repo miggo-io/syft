@@ -201,9 +201,38 @@ func addLicenses(ctx context.Context, resolver file.Resolver, dbLocation file.Lo
 		sr, sl := fetchCopyrightContents(resolver, dbLocation, metadata)
 		if sr != nil && sl != nil {
 			defer internal.CloseAndLogError(sr, sl.FullNestedPath())
-			p.Licenses.Add(pkg.NewLicensesFromReadCloserWithContext(ctx, file.NewLocationReadCloser(*sl, sr))...)
+			classified := pkg.NewLicensesFromReadCloserWithContext(ctx, file.NewLocationReadCloser(*sl, sr))
+			// a file the classifier cannot identify still names the licenses Debian ships by their common-licenses path
+			if !anyIdentified(classified) {
+				if refs := commonLicenseReferences(resolver, dbLocation, metadata); len(refs) > 0 {
+					for _, ref := range refs {
+						p.Licenses.Add(pkg.NewLicenseFromLocationsWithContext(ctx, ref, sl.WithoutAnnotations()))
+					}
+					return
+				}
+			}
+			p.Licenses.Add(classified...)
 		}
 	}
+}
+
+// anyIdentified reports whether a classified license is more than the hash of unrecognized content.
+func anyIdentified(licenses []pkg.License) bool {
+	for _, l := range licenses {
+		if l.SPDXExpression != "" || !strings.HasPrefix(l.Value, "sha256:") {
+			return true
+		}
+	}
+	return false
+}
+
+func commonLicenseReferences(resolver file.Resolver, dbLocation file.Location, metadata pkg.DpkgDBEntry) []string {
+	reader, location := fetchCopyrightContents(resolver, dbLocation, metadata)
+	if reader == nil || location == nil {
+		return nil
+	}
+	defer internal.CloseAndLogError(reader, location.FullNestedPath())
+	return parseCommonLicenseReferences(reader)
 }
 
 func mergeFileListing(resolver file.Resolver, dbLocation file.Location, p *pkg.Package) {
