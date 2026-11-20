@@ -333,19 +333,24 @@ func isValidMultiReleaseVersion(s string) bool {
 		return false
 	}
 
-	if s == "9" {
-		return true
-	}
-
-	// 0 is not allowed
+	// Must start with 1-9 (format: {1-9}{0-9}*)
 	if s[0] < '1' || s[0] > '9' {
 		return false
 	}
 
 	// Only digits are allowed
-	return strings.IndexFunc(s, func(r rune) bool {
+	if strings.IndexFunc(s, func(r rune) bool {
 		return r < '0' || r > '9'
-	}) != -1
+	}) != -1 {
+		return false
+	}
+
+	// Per spec: "Any versioned directory with N < 9 is ignored"
+	if len(s) == 1 && s[0] < '9' {
+		return false
+	}
+
+	return true
 }
 
 // discoverContainedPackages returns the sorted Java packages of the archive's classes, nil when there are none.

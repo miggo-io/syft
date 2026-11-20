@@ -50,7 +50,7 @@ func Test_archiveEntries_globFoldIgnoresCase(t *testing.T) {
 
 // contained packages are the archive's class directories, the same whether the archive is read from its file or
 // from the archive cataloger's extraction: sorted, de-duplicated, without META-INF, WEB-INF or the unnamed package,
-// and with a multi-release prefix stripped
+// and with the prefix of a multi-release version (9 and up) stripped
 func Test_discoverContainedPackages(t *testing.T) {
 	names := []string{
 		"META-INF/MANIFEST.MF",
@@ -60,6 +60,8 @@ func Test_discoverContainedPackages(t *testing.T) {
 		"org/acme/util/Strings.class",
 		"org/acme/util/res.properties",
 		"META-INF/versions/9/org/acme/mr/Nine.class",
+		"META-INF/versions/11/org/acme/eleven/Eleven.class",
+		"META-INF/versions/8/org/acme/eight/Eight.class",
 		"META-INF/Other.class",
 		"WEB-INF/classes/com/acme/web/Servlet.class",
 		"com/other/Lib.class",
@@ -85,7 +87,7 @@ func Test_discoverContainedPackages(t *testing.T) {
 	}
 	fromResolver := &resolverEntries{resolver: file.NewMockResolverForPaths(rooted...)}
 
-	want := []string{"com.other", "org.acme", "org.acme.mr", "org.acme.util"}
+	want := []string{"com.other", "org.acme", "org.acme.eleven", "org.acme.mr", "org.acme.util"}
 	for name, entries := range map[string]archiveEntries{"zip": fromZip, "resolver": fromResolver} {
 		t.Run(name, func(t *testing.T) {
 			assert.Equal(t, want, (&archiveParser{entries: entries}).discoverContainedPackages())
