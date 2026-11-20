@@ -1,0 +1,13 @@
+This package was debianized by Example Maintainer on Mon, 1 Jan 2024.
+
+Upstream Authors: The libfoo developers
+
+Copyright: 2001-2024 The libfoo developers
+
+The library is distributed under the terms of the GNU Lesser General Public
+License version 2.1, and the bundled tools under the GNU General Public
+License version 2.
+
+On Debian systems the complete text of the GNU Lesser General Public License
+can be found in `/usr/share/common-licenses/LGPL-2.1', and the complete text
+of the GNU General Public License in `/usr/share/common-licenses/GPL-2'.

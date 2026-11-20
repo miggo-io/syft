@@ -1,0 +1,6 @@
+Upstream-Name: libwl
+Source: https://example.org/libwl
+
+Files: *
+Copyright: 2012 The libwl developers
+License: X11

@@ -20,9 +20,9 @@ func TestParseLicensesFromCopyright(t *testing.T) {
 			expected: nil,
 		},
 		{
-			// no Format header; not machine-readable, returns nil
+			// opens with a Files field: machine-readable without a Format header
 			fixture:  "testdata/copyright/trilicense",
-			expected: nil,
+			expected: []string{"GPL-2", "LGPL-2.1", "MPL-1.1"},
 		},
 		{
 			fixture:  "testdata/copyright/liblzma5",
@@ -102,6 +102,41 @@ func TestParseLicensesFromCopyright_FormatHeader(t *testing.T) {
 			machineReadable: false,
 		},
 		{
+			name:            "draft Format header at dep.debian.net",
+			content:         "Format: http://dep.debian.net/deps/dep5\n",
+			machineReadable: true,
+		},
+		{
+			name:            "draft Format-Specification header at svn.debian.org",
+			content:         "Format-Specification: http://svn.debian.org/wsvn/dep/web/deps/dep5.mdwn?op=file&rev=135\n",
+			machineReadable: true,
+		},
+		{
+			name:            "draft Format header at anonscm.debian.org",
+			content:         "Format: http://anonscm.debian.org/viewvc/dep/web/deps/dep5.mdwn?view=markup\n",
+			machineReadable: true,
+		},
+		{
+			name:            "Format header naming another document",
+			content:         "Format: https://example.org/my-own-format\n",
+			machineReadable: false,
+		},
+		{
+			name:            "opens with Upstream-Name",
+			content:         "Upstream-Name: wayland\nSource: https://wayland.freedesktop.org/\n",
+			machineReadable: true,
+		},
+		{
+			name:            "opens with Files",
+			content:         "Files: *\nCopyright: 2024 Example\nLicense: X11\n",
+			machineReadable: true,
+		},
+		{
+			name:            "opens with Copyright",
+			content:         "Copyright: 2024 Example\n",
+			machineReadable: false,
+		},
+		{
 			name:            "empty content",
 			content:         "",
 			machineReadable: false,
@@ -135,5 +170,35 @@ License: LGPL-2.1
 	actual := parseLicensesFromCopyright(strings.NewReader(content))
 	if actual != nil {
 		t.Errorf("expected nil for non-machine-readable file, got %v", actual)
+	}
+}
+
+// common-licenses references are read from any copyright file, machine-readable or not
+func TestParseCommonLicenseReferences(t *testing.T) {
+	tests := []struct {
+		fixture  string
+		expected []string
+	}{
+		{fixture: "testdata/copyright/libc6", expected: []string{"GPL-2", "LGPL-2.1"}},
+		{fixture: "testdata/copyright/liblzma5", expected: []string{"GPL-2", "GPL-3", "LGPL-2", "LGPL-2.1"}},
+		{fixture: "testdata/copyright/python", expected: []string{"Apache-2.0", "GPL-2"}},
+		{fixture: "testdata/copyright/trilicense", expected: nil},
+		{fixture: "testdata/copyright/microsoft", expected: nil},
+	}
+	for _, test := range tests {
+		t.Run(test.fixture, func(t *testing.T) {
+			f, err := os.Open(test.fixture)
+			require.NoError(t, err)
+			t.Cleanup(func() { require.NoError(t, f.Close()) })
+
+			actual := parseCommonLicenseReferences(f)
+			if len(test.expected) == 0 {
+				require.Empty(t, actual)
+				return
+			}
+			if diff := cmp.Diff(test.expected, actual); diff != "" {
+				t.Errorf("unexpected references (-want +got):\n%s", diff)
+			}
+		})
 	}
 }

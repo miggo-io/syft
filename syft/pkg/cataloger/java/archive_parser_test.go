@@ -282,6 +282,16 @@ func TestParseJar(t *testing.T) {
 								},
 							},
 						},
+						ContainedPackages: []string{
+							"hello",
+							"org.joda.time",
+							"org.joda.time.base",
+							"org.joda.time.chrono",
+							"org.joda.time.convert",
+							"org.joda.time.field",
+							"org.joda.time.format",
+							"org.joda.time.tz",
+						},
 						// PomProject: &pkg.JavaPomProject{
 						// 	Path:       "META-INF/maven/io.jenkins.plugins/example-jenkins-plugin/pom.xml",
 						// 	Parent:     &pkg.JavaPomParent{GroupID: "org.jenkins-ci.plugins", ArtifactID: "plugin", Version: "4.46"},
@@ -393,6 +403,16 @@ func TestParseJar(t *testing.T) {
 							ArtifactID: "example-java-app-maven",
 							Version:    "0.1.0",
 						},
+						ContainedPackages: []string{
+							"hello",
+							"org.joda.time",
+							"org.joda.time.base",
+							"org.joda.time.chrono",
+							"org.joda.time.convert",
+							"org.joda.time.field",
+							"org.joda.time.format",
+							"org.joda.time.tz",
+						},
 					},
 				},
 				"joda-time": {
@@ -464,6 +484,16 @@ func TestParseJar(t *testing.T) {
 								},
 							},
 						},
+						ContainedPackages: []string{
+							"hello",
+							"org.joda.time",
+							"org.joda.time.base",
+							"org.joda.time.chrono",
+							"org.joda.time.convert",
+							"org.joda.time.field",
+							"org.joda.time.format",
+							"org.joda.time.tz",
+						},
 						// PomProject: &pkg.JavaPomProject{
 						// 	Path:       "META-INF/maven/io.jenkins.plugins/example-jenkins-plugin/pom.xml",
 						// 	Parent:     &pkg.JavaPomParent{GroupID: "org.jenkins-ci.plugins", ArtifactID: "plugin", Version: "4.46"},
@@ -528,6 +558,7 @@ func TestParseJar(t *testing.T) {
 			cfg := ArchiveCatalogerConfig{
 				UseNetwork:              false,
 				UseMavenLocalRepository: false,
+				DetectContainedPackages: true,
 			}
 			parser, cleanupFn, err := newJavaArchiveParser(pkgtest.Context(t),
 				file.LocationReadCloser{
@@ -1807,4 +1838,45 @@ func Test_jarPomPropertyResolutionDoesNotPanic(t *testing.T) {
 
 	_, _, err = ap.parse(ctx, nil)
 	require.NoError(t, err)
+}
+
+func Test_isValidMultiReleaseVersion(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected bool
+	}{
+		// Valid versions (multi-release JARs require version >= 9)
+		{"9", true},
+		{"10", true},
+		{"11", true},
+		{"17", true},
+		{"21", true},
+		{"100", true},
+
+		// Invalid versions - less than 9 (per spec: "Any versioned directory with N < 9 is ignored")
+		{"1", false},
+		{"2", false},
+		{"8", false},
+
+		// Invalid versions - format errors
+		{"", false},      // empty string
+		{"0", false},     // zero not allowed (first digit must be 1-9)
+		{"01", false},    // leading zero
+		{"9a", false},    // contains non-digit
+		{"a9", false},    // starts with non-digit
+		{"abc", false},   // all non-digits
+		{"-1", false},    // negative (starts with non-digit)
+		{"9.0", false},   // contains non-digit (period)
+		{"11-ea", false}, // contains non-digit (dash and letters)
+		{" 9", false},    // leading space
+		{"9 ", false},    // trailing space
+		{"1.8", false},   // old-style version format
+	}
+
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("input=%q", tt.input), func(t *testing.T) {
+			result := isValidMultiReleaseVersion(tt.input)
+			assert.Equal(t, tt.expected, result, "isValidMultiReleaseVersion(%q)", tt.input)
+		})
+	}
 }
