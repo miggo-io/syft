@@ -301,6 +301,11 @@ func (j *archiveParser) discoverMainPackage(ctx context.Context) (*pkg.Package, 
 		pkgPomProject = newPomProject(ctx, j.maven, parsedPom.path, parsedPom.project)
 	}
 
+	var containedPackages []string
+	if j.cfg.DetectContainedPackages {
+		containedPackages = j.discoverContainedPackages()
+	}
+
 	return &pkg.Package{
 		// TODO: maybe select name should just have a pom properties in it?
 		Name:     name,
@@ -312,12 +317,70 @@ func (j *archiveParser) discoverMainPackage(ctx context.Context) (*pkg.Package, 
 		),
 		Type: j.fileInfo.pkgType(),
 		Metadata: pkg.JavaArchive{
-			VirtualPath:    j.virtualPath(),
-			Manifest:       manifest,
-			PomProject:     pkgPomProject,
-			ArchiveDigests: j.archiveDigests,
+			VirtualPath:       j.virtualPath(),
+			Manifest:          manifest,
+			PomProject:        pkgPomProject,
+			ContainedPackages: containedPackages,
+			ArchiveDigests:    j.archiveDigests,
 		},
 	}, nil
+}
+
+// isValidMultiReleaseVersion tests if the given string is a valid multi-release version as specified by
+// https://docs.oracle.com/en/java/javase/11/docs/specs/jar/jar.html#multi-release-jar-files
+func isValidMultiReleaseVersion(s string) bool {
+	if s == "" {
+		return false
+	}
+
+	if s == "9" {
+		return true
+	}
+
+	// 0 is not allowed
+	if s[0] < '1' || s[0] > '9' {
+		return false
+	}
+
+	// Only digits are allowed
+	return strings.IndexFunc(s, func(r rune) bool {
+		return r < '0' || r > '9'
+	}) != -1
+}
+
+// discoverContainedPackages returns the sorted Java packages of the archive's classes, nil when there are none.
+func (j *archiveParser) discoverContainedPackages() []string {
+	pkgSet := strset.New()
+
+	for _, c := range j.entries.glob("/**/*.class") {
+		parts := strings.Split(c, "/")
+
+		if len(parts) > 3 && parts[0] == "META-INF" && parts[1] == "versions" && isValidMultiReleaseVersion(parts[2]) {
+			// Strip the version specific prefix, as we are interested in all packages in the JAR.
+			parts = parts[3:]
+		}
+
+		// Ignore any unnamed packages.
+		if len(parts) <= 1 {
+			continue
+		}
+
+		// Skip any non version specific classes in META-INF and ignore WEB-INF.
+		if parts[0] == "META-INF" || parts[0] == "WEB-INF" {
+			continue
+		}
+
+		pkgSet.Add(strings.Join(parts[:len(parts)-1], "."))
+	}
+
+	if pkgSet.Size() == 0 {
+		return nil
+	}
+
+	pkgs := pkgSet.List()
+	slices.Sort(pkgs)
+
+	return pkgs
 }
 
 func (j *archiveParser) discoverNameVersionLicense(ctx context.Context, manifest *pkg.JavaManifest) (string, string, []pkg.License, *parsedPomProject) {

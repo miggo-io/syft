@@ -111,6 +111,9 @@ type JavaArchive struct {
 	// PomProject is parsed pom.xml file contents
 	PomProject *JavaPomProject `mapstructure:"PomProject" json:"pomProject,omitempty"`
 
+	// ContainedPackages is the sorted Java packages of the archive's own classes (set when the cataloger's DetectContainedPackages is on)
+	ContainedPackages []string `mapstructure:"ContainedPackages" json:"containedPackages"`
+
 	// ArchiveDigests is cryptographic hashes of the archive file
 	ArchiveDigests []file.Digest `hash:"ignore" json:"digest,omitempty"`
 
