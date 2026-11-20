@@ -202,13 +202,21 @@ func addLicenses(ctx context.Context, resolver file.Resolver, dbLocation file.Lo
 		if sr != nil && sl != nil {
 			defer internal.CloseAndLogError(sr, sl.FullNestedPath())
 			classified := pkg.NewLicensesFromReadCloserWithContext(ctx, file.NewLocationReadCloser(*sl, sr))
-			// a file the classifier cannot identify still names the licenses Debian ships by their common-licenses path
-			if !anyIdentified(classified) {
-				if refs := commonLicenseReferences(resolver, dbLocation, metadata); len(refs) > 0 {
-					for _, ref := range refs {
-						p.Licenses.Add(pkg.NewLicenseFromLocationsWithContext(ctx, ref, sl.WithoutAnnotations()))
+			// the file also names the licenses Debian ships by their common-licenses path; with those, a hash of
+			// content the classifier could not identify adds nothing
+			if refs := commonLicenseReferences(resolver, dbLocation, metadata); len(refs) > 0 {
+				if !anyIdentified(classified) {
+					classified = nil
+				}
+				found := strset.New()
+				for _, l := range classified {
+					found.Add(l.SPDXExpression)
+				}
+				for _, ref := range refs {
+					l := pkg.NewLicenseFromLocationsWithContext(ctx, ref, sl.WithoutAnnotations())
+					if l.SPDXExpression == "" || !found.Has(l.SPDXExpression) {
+						p.Licenses.Add(l)
 					}
-					return
 				}
 			}
 			p.Licenses.Add(classified...)

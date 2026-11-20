@@ -18,7 +18,9 @@ var (
 	licensePattern                 = regexp.MustCompile(`^License: (?P<license>\S*)`)
 	commonLicensePathPattern       = regexp.MustCompile(`/usr/share/common-licenses/(?P<license>[0-9A-Za-z_.\-]+)`)
 	licenseAgreementHeadingPattern = regexp.MustCompile(`(?i)^\s*(?P<license>LICENSE AGREEMENT(?: FOR .+?)?)\s*$`)
-	formatHeaderPattern            = regexp.MustCompile(`^Format:\s*https?://www\.debian\.org/doc/packaging-manuals/copyright-format/`)
+	// the Format field names the specification or one of its drafts, which some files call Format-Specification;
+	// a file that opens with a header-paragraph or Files field is machine-readable without it
+	formatHeaderPattern = regexp.MustCompile(`^((Format|Format-Specification):\s*https?://\S*(copyright-format|deps/dep5|CopyrightFormat)|(Upstream-Name|Upstream-Contact|Files):)`)
 )
 
 // heading-detection states. Replaces licenseFirstSentenceAfterHeadingPattern,

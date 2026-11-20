@@ -1,0 +1,11 @@
+Format: http://dep.debian.net/deps/dep5
+Upstream-Name: libdraft
+Source: https://example.org/libdraft
+
+Files: *
+Copyright: 2010 The libdraft developers
+License: BSD-3-Clause
+
+Files: debian/*
+Copyright: 2010 Example Maintainer
+License: X11

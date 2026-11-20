@@ -20,9 +20,9 @@ func TestParseLicensesFromCopyright(t *testing.T) {
 			expected: nil,
 		},
 		{
-			// no Format header; not machine-readable, returns nil
+			// opens with a Files field: machine-readable without a Format header
 			fixture:  "testdata/copyright/trilicense",
-			expected: nil,
+			expected: []string{"GPL-2", "LGPL-2.1", "MPL-1.1"},
 		},
 		{
 			fixture:  "testdata/copyright/liblzma5",
@@ -99,6 +99,41 @@ func TestParseLicensesFromCopyright_FormatHeader(t *testing.T) {
 		{
 			name:            "Format header is not first non-blank line",
 			content:         "Some-Field: value\nFormat: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/\n",
+			machineReadable: false,
+		},
+		{
+			name:            "draft Format header at dep.debian.net",
+			content:         "Format: http://dep.debian.net/deps/dep5\n",
+			machineReadable: true,
+		},
+		{
+			name:            "draft Format-Specification header at svn.debian.org",
+			content:         "Format-Specification: http://svn.debian.org/wsvn/dep/web/deps/dep5.mdwn?op=file&rev=135\n",
+			machineReadable: true,
+		},
+		{
+			name:            "draft Format header at anonscm.debian.org",
+			content:         "Format: http://anonscm.debian.org/viewvc/dep/web/deps/dep5.mdwn?view=markup\n",
+			machineReadable: true,
+		},
+		{
+			name:            "Format header naming another document",
+			content:         "Format: https://example.org/my-own-format\n",
+			machineReadable: false,
+		},
+		{
+			name:            "opens with Upstream-Name",
+			content:         "Upstream-Name: wayland\nSource: https://wayland.freedesktop.org/\n",
+			machineReadable: true,
+		},
+		{
+			name:            "opens with Files",
+			content:         "Files: *\nCopyright: 2024 Example\nLicense: X11\n",
+			machineReadable: true,
+		},
+		{
+			name:            "opens with Copyright",
+			content:         "Copyright: 2024 Example\n",
 			machineReadable: false,
 		},
 		{

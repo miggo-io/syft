@@ -357,8 +357,8 @@ func TestCataloger_Globs(t *testing.T) {
 	}
 }
 
-// a copyright file that is not machine-readable gets the classifier's licenses; when the classifier identifies none,
-// the common-licenses references it names, else the hash of its content
+// a copyright file that is not machine-readable gets the classifier's licenses and the common-licenses references it
+// names, without the hash of unidentified content when it names any; a draft DEP-5 file is machine-readable
 func TestDpkgCataloger_licensesOfFreeFormCopyright(t *testing.T) {
 	pkgtest.NewCatalogTester().
 		FromDirectory(t, "testdata/copyright-fallback").
@@ -378,9 +378,12 @@ func TestDpkgCataloger_licensesOfFreeFormCopyright(t *testing.T) {
 				sort.Strings(got[p.Name])
 			}
 			want := map[string][]string{
-				"libfoo1": {"GPL-2.0-only", "LGPL-2.1-only"},
-				"libbar1": {"MIT"},
-				"libbaz1": {"sha256:<content>"},
+				"libfoo1":   {"GPL-2.0-only", "LGPL-2.1-only"},
+				"libbar1":   {"MIT"},
+				"libbaz1":   {"sha256:<content>"},
+				"libqux1":   {"GPL-2.0-only", "MIT"},
+				"libdraft1": {"BSD-3-Clause", "X11"},
+				"libwl1":    {"X11"},
 			}
 			if d := cmp.Diff(want, got); d != "" {
 				t.Errorf("unexpected licenses (-want +got):\n%s", d)
